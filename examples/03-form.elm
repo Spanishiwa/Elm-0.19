@@ -16,8 +16,15 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (onInput)
+import List exposing (append, filter, filterMap)
 import Parser exposing (..)
-import String exposing (append, concat, isEmpty, join, length)
+import String
+    exposing
+        ( concat
+        , isEmpty
+        , join
+        , length
+        )
 
 
 
@@ -126,15 +133,50 @@ viewInput t p v toMsg =
 
 
 -- Password Validation
+-- validatePassword : String -> String -> List ( Bool, String )
+-- validatePassword password passwordAgain =
+--     List.map
+--         [ validatePasswordsIdentical password passwordAgain
+--         , validatePasswordIsNotEmpty password passwordAgain
+--         , validatePasswordMinimumLength password
+--         ]
 
 
-validatePassword : String -> String -> List ( Bool, String )
-validatePassword password passwordAgain =
-    List.map
-        [ validatePasswordsIdentical password passwordAgain
-        , validatePasswordIsNotEmpty password passwordAgain
-        , validatePasswordMinimumLength password
-        ]
+validationErrorMessages : List ( Bool, String ) -> List String
+validationErrorMessages boolStringList =
+    List.map errorConcat (filter validationFalseFilter boolStringList)
+
+
+errorConcat : ( Bool, String ) -> String
+errorConcat ( bool, error_msg ) =
+    error_msg
+
+
+validateAllToString : Model -> String
+validateAllToString model =
+    validationErrorMessage (validatePasswordsIdentical model.password model.passwordAgain)
+        ++ " "
+        ++ validationErrorMessage (validatePasswordIsNotEmpty model.password model.passwordAgain)
+        ++ " "
+        ++ validationErrorMessage (validatePasswordMinimumLength model.password)
+
+
+validationFalseFilter : ( Bool, String ) -> Bool
+validationFalseFilter ( bool, error_msg ) =
+    if bool == False then
+        True
+
+    else
+        False
+
+
+validationErrorMessage : ( Bool, String ) -> String
+validationErrorMessage ( bool, error_msg ) =
+    if bool == False then
+        error_msg
+
+    else
+        ""
 
 
 validatePasswordsIdentical : String -> String -> ( Bool, String )
@@ -159,7 +201,7 @@ validatePasswordIsNotEmpty password passwordAgain =
 
 validatePasswordMinimumLength : String -> ( Bool, String )
 validatePasswordMinimumLength password =
-    if length password < 8 then
+    if length password > 0 && length password < 8 then
         ( False, "Password must be at least 8 characters in length" )
 
     else
@@ -173,11 +215,11 @@ viewValidation model =
     case model.password == model.passwordAgain of
         True ->
             -- { model | validationMessage = "Password and re-entered password are identical!" }
-            div [ style "color" "green" ] [ text (join " " model.validationMessages) ]
+            div [ style "color" "green" ] [ text (validateAllToString model) ]
 
         False ->
             -- { model | validationMessage = "Password and re-entered password are not identical!" }
-            div [ style "color" "red" ] [ text (join " " model.validationMessages) ]
+            div [ style "color" "red" ] [ text (validateAllToString model) ]
 
 
 
